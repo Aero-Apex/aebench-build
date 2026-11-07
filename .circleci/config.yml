@@ -1,0 +1,57 @@
+# CircleCI builds the macOS (Apple Silicon) AeBench app from the private source repo.
+# Set these project environment variables in CircleCI:
+#   SOURCE_TOKEN                  GitHub token that can read Aero-Apex/aebench
+#   TAURI_SIGNING_PRIVATE_KEY     contents of the updater private key
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  empty value
+version: 2.1
+
+jobs:
+  build-macos:
+    parameters:
+      tag:
+        type: string
+        default: v1.0.0
+    macos:
+      xcode: "16.2.0"
+    resource_class: macos.m1.medium.gen1
+    environment:
+      SOURCE_REPO: Aero-Apex/aebench
+      TAG: << parameters.tag >>
+    steps:
+      - run:
+          name: Fetch private source at the tag
+          command: |
+            git clone --depth 1 --branch "$TAG" "https://x-access-token:${SOURCE_TOKEN}@github.com/${SOURCE_REPO}.git" src
+      - run:
+          name: Toolchain
+          command: |
+            curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
+            source "$HOME/.cargo/env"
+            rustup target add aarch64-apple-darwin
+            corepack enable
+            corepack prepare pnpm@9.15.0 --activate
+            node --version
+      - run:
+          name: Build .app and .dmg
+          command: |
+            source "$HOME/.cargo/env"
+            cd src
+            pnpm install --frozen-lockfile
+            cd app
+            pnpm tauri build --target aarch64-apple-darwin --bundles app,dmg
+      - run:
+          name: Collect artifacts
+          command: |
+            mkdir -p out
+            B=src/target/aarch64-apple-darwin/release/bundle
+            cp "$B"/dmg/*.dmg out/ 2>/dev/null || true
+            cp "$B"/macos/*.app.tar.gz out/ 2>/dev/null || true
+            cp "$B"/macos/*.app.tar.gz.sig out/ 2>/dev/null || true
+            ls -la out
+      - store_artifacts:
+          path: out
+
+workflows:
+  macos-release:
+    jobs:
+      - build-macos
