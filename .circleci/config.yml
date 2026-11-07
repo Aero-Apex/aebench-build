@@ -10,7 +10,7 @@ jobs:
     parameters:
       tag:
         type: string
-        default: v1.0.0
+        default: v1.0.1
     macos:
       xcode: "16.2.0"
     resource_class: macos.m1.medium.gen1
