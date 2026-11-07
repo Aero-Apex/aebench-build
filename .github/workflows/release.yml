@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-14
+          - platform: macos-15
             target: aarch64-apple-darwin
             args: --target aarch64-apple-darwin
           - platform: windows-latest
@@ -78,7 +78,7 @@ jobs:
       # Apple signing + notarization only when the secrets exist; otherwise the app is ad-hoc signed
       # (signingIdentity "-" in tauri.conf.json) and users open it once with right-click > Open.
       - name: Apple signing environment
-        if: matrix.platform == 'macos-14'
+        if: matrix.platform == 'macos-15'
         shell: bash
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
